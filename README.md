@@ -35,14 +35,14 @@ The payload will be available as a single string of characters, separated by `|`
 00|a7738550-d543-4f78-b464-1f3e4c6690d5|1619818359|John Snow00000000000|3|9618d8811f3627afdab84cfe6b98f9f0
 ```
 
-```
-POS     SIZE    CONTENTS
-0 	    2 	    Message Version (default 00), goes to 99
-1	    36	    id, unique secure random uuid
-2       10      Unix timestamp
-3  	    20	    Patient identifier (or name?), right padded with 0
-4		1	    Result ENUM, potential for expanded payload in subsequent revisions
-```
+| Position       | Size       | Contents                                                                | 
+| -------------- | :--------- | :---------------------------------------------------------------------- |
+| 0              | 2          | Message Version (default 00), goes to 99                                |
+| 1              | 36         | id, unique secure random uuid                                           |
+| 2              | 10         | Unix timestamp                                                          |
+| 3              | 20         | Patient identifier (or name?), right padded with 0                      | 
+| 4              | 1          | Result ENUM, potential for expanded payload in subsequent revisions     |
+| 5              | 16         | blake2s security hash                                                   |
 
 ## Encryption Standard
 ```
