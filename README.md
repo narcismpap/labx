@@ -7,7 +7,7 @@ docker run --rm docker.pkg.github.com/narcismpap/labx/labx:latest
 docker run --rm --entrypoint pytest docker.pkg.github.com/narcismpap/labx/labx:latest
 ```
 
-## Intial Assumptions
+## Initial Assumptions
 This QR code can be generated at two steps in the process:
 1) before the results are available from the lab, meaning the QR code acts just as a secure key to access results via a query to a live server
 2) after tests results are available, the resulting state can be encoded in the QR code for secure, completely offline verifications
@@ -30,8 +30,8 @@ This application will use the device hardware camera to scan the QR code and dis
 ### QR Payload Design
 The payload will be available as a single string of characters, separated by `|`, with fixed positions for attributes.
 
+Example Payload
 ```
-# Example Payload
 00|a7738550-d543-4f78-b464-1f3e4c6690d5|1619818359|John Snow00000000000|3|9618d8811f3627afdab84cfe6b98f9f0
 ```
 
@@ -42,7 +42,14 @@ The payload will be available as a single string of characters, separated by `|`
 | 2              | 10         | Unix timestamp                                                          |
 | 3              | 20         | Patient identifier (or name?), right padded with 0                      | 
 | 4              | 1          | Result ENUM, potential for expanded payload in subsequent revisions     |
-| 5              | 16         | blake2s security hash                                                   |
+| 5              | 16         | blake2b security hash; digest=16 for compact output                     |
+
+Potential Optimisations
+* [x] keep same-with (padded values) so QR codes look roughly the same
+* [ ] remove `|` and instead rely on fixed positions (0-2, 3-28, ...)
+* [ ] compress UUID (`bigint` or ideally `base64` encoded bin), yet neet to be careful with cross-platform issues
+* [ ] deliver proper signature, noted below at `Signature Delivery` or enforce online-only checks with offline fallback
+* [ ] investigate using [ksuid](https://pkg.go.dev/github.com/segmentio/ksuid) instead of `UUID`, which already include a timestamp
 
 ## Encryption Standard
 ```
@@ -55,10 +62,15 @@ For maximum compatibility with all potential QR code consumers, RSA 3072 will be
 ## Pseudo-Secure Hashing
 As proper signatures, such as the ones provided by `PKCS#1` are not possible to implement inside a QR Code, a compromise must be considered. To find the ideal middle ground, we must analyze the potential attack vectors:
 
-1) MOST LIKELY: A person forging the contents of the QR using simple to access tools
-2) LESS LIKELY: Skilled engineer extracting the known blake2b secret from the application binary
+1) `MORE LIKELY:` A person forging the contents of the QR using simple to access tools (QR Code generator + text editor)
+2) `LESS LIKELY:` Skilled engineer extracting the known blake2b secret from the application binary
 
-Based on this threat model, while offering a shared-secret HMAC-based signature system is prone to an attack from an adversary capable of extracting data from application binaries, it provides at least a minimal level of defence against forged QR Codes.
+Based on this threat model, while offering a shared-secret blake2b-based signature system is prone to an attack from an adversary capable of extracting data from application binaries, it provides at least a minimal level of defence against forged QR Codes.
+
+### Signature Delivery
+Using this `Hashing` model, we can offer limited offline QR validation with built-in verification. To further improve this security model, we can offer an API which exposes the complete `PKCS#1` signature, which can then be stored offline by a smart reading device.
+
+Using homegrown encryption, verification or hashing for certification is never a solution. We must implement a safe protocol, potentially optimise on Elliptic Curve Cryptography (ECC) and offer a way for checks to be safely performed offline. 
 
 
 London, Apr 2021.
